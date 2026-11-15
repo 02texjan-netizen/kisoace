@@ -8,23 +8,24 @@ let W=1965,H=1390,marks=[],strokes=[],mode='tap',calibration=null,calStart=null,
 parts.forEach(([id])=>{const o=document.createElement('option');o.value=id;o.textContent=id;$('part').append(o)});
 function dimensions(){
  baseWidth=Math.max(1,work.clientWidth);
- // Keep the drawing at the viewport origin. Safari may ignore the initial
- // programmatic scroll into large empty padding, leaving only a gray panel.
  padX=0;padY=0;
- sheet.style.width=baseWidth+'px';sheet.style.height=(baseWidth*H/W)+'px';
  sheet.style.setProperty('--ratio',W+'/'+H);updateStage();
 }
 function updateStage(){
  const width=baseWidth*scale,height=baseWidth*H/W*scale;
  stage.style.width=(width+2*padX)+'px';stage.style.height=(height+2*padY)+'px';
  sheet.style.left=padX+'px';sheet.style.top=padY+'px';
- sheet.style.transform=`scale(${scale})`;
+ // Resize both layers together: a large CSS transform can make Safari drop
+ // the decoded image during pinch and leave an empty sheet.
+ sheet.style.transform='none';
+ sheet.style.width=width+'px';sheet.style.height=height+'px';
  $('zoomLabel').textContent=Math.round(scale*100)+'%';
 }
 function zoomTo(next,cx,cy){
  const wr=work.getBoundingClientRect(),sr=sheet.getBoundingClientRect();
  const localX=(cx-sr.left)/scale,localY=(cy-sr.top)/scale;
  scale=Math.max(0.5,Math.min(12,next));updateStage();
+ void stage.offsetWidth;
  work.scrollLeft=padX+localX*scale-(cx-wr.left);
  work.scrollTop=padY+localY*scale-(cy-wr.top);
 }
@@ -58,6 +59,7 @@ work.addEventListener('touchstart',e=>{if(e.touches.length===2){
 work.addEventListener('touchmove',e=>{if(e.touches.length>=2&&pinch){
  e.preventDefault();const a=e.touches[0],b=e.touches[1],mid=touchMid(a,b),r=work.getBoundingClientRect();
  scale=Math.max(.5,Math.min(12,pinch.startScale*touchDist(a,b)/pinch.distance));updateStage();
+ void stage.offsetWidth;
  work.scrollLeft=padX+pinch.anchorX*scale-(mid.x-r.left);
  work.scrollTop=padY+pinch.anchorY*scale-(mid.y-r.top);
 }},{capture:true,passive:false});
